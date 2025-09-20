@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Identifier</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .upload-section {
+            border: 2px dashed #ddd;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .file-input {
+            margin-bottom: 20px;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .identify-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .identify-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .identify-btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .results h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .results p {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            display: none;
+        }
+
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Image Identifier</h1>
+        
+        <form id="uploadForm">
+            <div class="upload-section">
+                <div class="file-input">
+                    <input type="file" id="imageFile" accept="image/*" required>
+                </div>
+                <img id="previewImage" class="preview-image" alt="Preview">
+            </div>
+            
+            <button type="submit" class="identify-btn" id="identifyBtn">
+                Identify Image
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            Processing image...
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results" id="results">
+            <h3>Identification Results:</h3>
+            <p id="resultText"></p>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('imageFile');
+        const previewImage = document.getElementById('previewImage');
+        const identifyBtn = document.getElementById('identifyBtn');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const results = document.getElementById('results');
+        const resultText = document.getElementById('resultText');
+
+        // Preview uploaded image
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewImage.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const file = fileInput.files[0];
+            if (!file) {
+                showError('Please select an image file');
+                return;
+            }
+
+            // Hide previous results and errors
+            hideAll();
+            loading.style.display = 'block';
+            identifyBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('image', file);
+
+                const response = await fetch('/api/identify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResults(data.result);
+                } else {
+                    showError(data.error || 'Failed to identify image');
+                }
+            } catch (err) {
+                showError('Network error: ' + err.message);
+            } finally {
+                loading.style.display = 'none';
+                identifyBtn.disabled = false;
+            }
+        });
+
+        function showResults(result) {
+            resultText.textContent = result;
+            results.style.display = 'block';
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        function hideAll() {
+            results.style.display = 'none';
+            error.style.display = 'none';
+            loading.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
